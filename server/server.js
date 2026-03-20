@@ -87,6 +87,9 @@ const patientDashboard = require('./routes/patientDashboard');
 const profile = require('./routes/profile');
 
 // Routes
+app.get("/", (req, res) => {
+  res.send("MedCare API is running 🚀");
+});
 app.use('/api/auth', auth);
 app.use('/api/admin', admin);
 app.use('/api/services', services);
@@ -105,6 +108,6 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });

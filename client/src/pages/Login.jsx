@@ -5,6 +5,7 @@ import { Mail, Lock, Activity } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
+    const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         email: '',
         password: '',
@@ -20,13 +21,18 @@ const Login = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true);
+        console.log('Login clicked');
+        console.log('Sending request...', formData);
         try {
             const response = await fetch(`${API_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: formData.email, password: formData.password })
             });
+            console.log('Response status:', response.status);
             const data = await response.json();
+            console.log('Response data:', data);
             
             if (data.success) {
                 login(data.user, data.token);
@@ -114,7 +120,7 @@ const Login = () => {
                             </a>
                         </div>
 
-                        <button type="submit" className="w-full btn-primary py-3 text-base tracking-wide shadow-primary-500/40">
+                        <button type="submit" disabled={loading} className={`w-full btn-primary py-3 text-base tracking-wide shadow-primary-500/40 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}>
                             Log In
                         </button>
                     </form>

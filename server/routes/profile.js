@@ -14,8 +14,8 @@ router.post('/upload-photo', protect, upload.single('image'), async (req, res) =
             return res.status(400).json({ success: false, message: 'Please upload an image' });
         }
 
-        // Generate URL for the image
-        const imageUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+        // Cloudinary puts the uploaded URL into req.file.path
+        const imageUrl = req.file.path;
 
         // Update user's profileImage in DB
         const user = await User.findById(req.user.id);

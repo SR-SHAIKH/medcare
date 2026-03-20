@@ -18,48 +18,69 @@ connectDB();
 
 const app = express();
 const server = http.createServer(app);
+
+// ✅ Allowed Origins (IMPORTANT)
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://medcare-9ifh.onrender.com"
+];
+
+// ✅ Socket.io setup (FIXED)
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
-    methods: ['GET', 'POST']
+    origin: allowedOrigins,
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 });
 
-// Make io accessible to our router/controllers
+// Make io accessible to controllers
 app.set('io', io);
 
-// Middleware
+// ✅ Middleware
 app.use(helmet());
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
+
+// ✅ CORS FIX (MAIN FIX)
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// app.use(mongoSanitize());
-// app.use(xss()); // Incompatible with Express 5 — req.query is read-only
+// app.use(mongoSanitize()); // optional
+// app.use(xss()); // disabled (Express 5 issue)
 app.use(morgan('dev'));
 
-// Static folder for uploads
+// ✅ Static uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// General API Rate Limiting
+// ✅ Rate limiting (General)
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   message: { success: false, message: 'Too many requests, please try again later' }
 });
 app.use('/api', limiter);
 
-// Stricter rate limiter for auth endpoints (prevents brute-force attacks)
+// ✅ Auth limiter
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 login attempts per window
+  windowMs: 15 * 60 * 1000,
+  max: 10,
   message: { success: false, message: 'Too many login attempts. Please try again after 15 minutes.' }
 });
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 
-// Socket.io for Video Consultation & Real-time Notifications
+// ✅ Socket events
 io.on('connection', (socket) => {
-  console.log('A user connected:', socket.id);
+  console.log('User connected:', socket.id);
 
   socket.on('join-room', (roomId, userId) => {
     socket.join(roomId);
@@ -75,6 +96,7 @@ io.on('connection', (socket) => {
   });
 });
 
+// ✅ Routes
 const auth = require('./routes/auth');
 const admin = require('./routes/admin');
 const services = require('./routes/services');
@@ -86,10 +108,12 @@ const doctorDashboard = require('./routes/doctorDashboard');
 const patientDashboard = require('./routes/patientDashboard');
 const profile = require('./routes/profile');
 
-// Routes
+// Root route
 app.get("/", (req, res) => {
   res.send("MedCare API is running 🚀");
 });
+
+// API Routes
 app.use('/api/auth', auth);
 app.use('/api/admin', admin);
 app.use('/api/services', services);
@@ -101,13 +125,18 @@ app.use('/api/doctor', doctorDashboard);
 app.use('/api/patient', patientDashboard);
 app.use('/api/profile', profile);
 
-// Error Handler Middleware
+// ✅ Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ success: false, message: 'Server Error', error: err.message });
+  res.status(500).json({
+    success: false,
+    message: err.message || 'Server Error'
+  });
 });
 
+// ✅ PORT (Render compatible)
 const PORT = process.env.PORT || 5000;
+
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });

@@ -1,0 +1,145 @@
+const User = require('../models/User');
+const Doctor = require('../models/Doctor');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+
+// Get token from model, create cookie and send response
+const sendTokenResponse = (user, statusCode, res) => {
+    // Create token with user identity and role
+    const token = jwt.sign(
+        { id: user._id, role: user.role, email: user.email },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRE }
+    );
+
+    res.status(statusCode).json({
+        success: true,
+        token, // We can also send token back in a cookie if needed for advanced security
+        user: {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role
+        }
+    });
+};
+
+// @desc    Register user
+// @route   POST /api/auth/register
+// @access  Public
+exports.register = async (req, res, next) => {
+    try {
+        const { 
+            name, email, password, phone, role,
+            qualification, experience, clinicLocation, consultationFee, specializations, consultationTypes, documents 
+        } = req.body;
+
+        // Check if user already exists
+        let user = await User.findOne({ email });
+        if (user) {
+            return res.status(400).json({ success: false, message: 'User already exists' });
+        }
+
+        // Hash password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        // Create user
+        user = await User.create({
+            name,
+            email,
+            password: hashedPassword,
+            phone,
+            role: role || 'patient'
+        });
+
+        // If role is doctor, create doctor profile
+        if (role === 'doctor') {
+            const doctor = await Doctor.create({
+                user: user._id,
+                name: user.name,
+                specializations,
+                consultationTypes,
+                qualification,
+                experience,
+                clinicLocation,
+                consultationFee,
+                documents: documents ? [documents] : [],
+                status: 'pending'
+            });
+
+            // Trigger real-time update to Admin Dashboard
+            const io = req.app.get('io');
+            if (io) {
+                io.emit('newDoctor', {
+                    _id: doctor._id,
+                    name: doctor.name,
+                    email: user.email,
+                    specializations: doctor.specializations,
+                    status: 'pending',
+                    createdAt: doctor.createdAt
+                });
+            }
+        }
+
+        // Send Welcome Email
+        try {
+            const sendEmail = require('../utils/sendEmail');
+            await sendEmail({
+                email: user.email,
+                subject: 'Welcome to MEDCARE - Appointment Booking Platform',
+                message: `Hello ${user.name},\n\nWelcome to MEDCARE! Your account has been successfully created. ${role === 'doctor' ? 'Your doctor profile is currently pending admin approval.' : 'You can now book appointments with our doctors.'}\n\nBest Regards,\nThe MEDCARE Team`
+            });
+        } catch (emailErr) {
+            console.error('Failed to send welcome email:', emailErr);
+        }
+
+        sendTokenResponse(user, 201, res);
+    } catch (err) {
+        res.status(400).json({ success: false, error: err.message });
+    }
+};
+
+// @desc    Login user
+// @route   POST /api/auth/login
+// @access  Public
+exports.login = async (req, res, next) => {
+    try {
+        const { email, password } = req.body;
+
+        // Validate email & password
+        if (!email || !password) {
+            return res.status(400).json({ success: false, message: 'Please provide email and password' });
+        }
+
+        // Check for user
+        const user = await User.findOne({ email }).select('+password');
+
+        if (!user) {
+            return res.status(401).json({ success: false, message: 'Invalid credentials' });
+        }
+
+        // Check if password matches
+        const isMatch = await bcrypt.compare(password, user.password);
+
+        if (!isMatch) {
+            return res.status(401).json({ success: false, message: 'Invalid credentials' });
+        }
+
+        sendTokenResponse(user, 200, res);
+    } catch (err) {
+        res.status(400).json({ success: false, error: err.message });
+    }
+};
+
+// @desc    Get current logged in user
+// @route   GET /api/auth/me
+// @access  Private
+exports.getMe = async (req, res, next) => {
+    try {
+        const user = await User.findById(req.user.id);
+        res.status(200).json({ success: true, data: user });
+    } catch (err) {
+        res.status(400).json({ success: false, error: err.message });
+    }
+};

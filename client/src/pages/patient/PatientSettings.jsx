@@ -1,3 +1,4 @@
+import { API_URL } from "../../config";
 import { useState, useEffect } from 'react';
 import { User, Mail, Phone, Lock, Camera, Save } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -20,7 +21,7 @@ const PatientSettings = () => {
 
     const fetchProfile = async () => {
         try {
-            const res = await authFetch(`${import.meta.env.VITE_API_URL}/api/patient/profile`);
+            const res = await authFetch(`${API_URL}/api/patient/profile`);
             const data = await res.json();
             if (data.success) {
                 setProfile(prev => ({
@@ -54,7 +55,7 @@ const PatientSettings = () => {
         formData.append('image', file);
 
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/profile/upload-photo`, {
+            const res = await fetch(`${API_URL}/api/profile/upload-photo`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}` // Assuming token is stored in localStorage
@@ -82,7 +83,7 @@ const PatientSettings = () => {
 
         setLoading(true);
         try {
-            const res = await authFetch(`${import.meta.env.VITE_API_URL}/api/patient/profile`, {
+            const res = await authFetch(`${API_URL}/api/patient/profile`, {
                 method: 'PUT',
                 body: JSON.stringify({
                     name: profile.name,

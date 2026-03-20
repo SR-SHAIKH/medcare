@@ -1,3 +1,4 @@
+import { API_URL } from "../config";
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Search, Star, MapPin, Video, Award, Clock } from 'lucide-react';
@@ -20,7 +21,7 @@ const Doctors = () => {
 
     const fetchDoctors = async () => {
         try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/doctors`);
+            const res = await axios.get(`${API_URL}/api/doctors`);
             if (res.data.success) {
                 // Filter only approved doctors (backend usually does this but safety first)
                 setDoctors(res.data.data.filter(d => d.status === 'approved'));

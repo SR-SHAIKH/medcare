@@ -1,3 +1,4 @@
+import { API_URL } from "../config";
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Mail, Lock, User as UserIcon, Phone, Activity, Stethoscope, MapPin, Briefcase, DollarSign, Upload } from 'lucide-react';
@@ -58,7 +59,7 @@ const Register = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/register`, {
+            const response = await fetch(`${API_URL}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)

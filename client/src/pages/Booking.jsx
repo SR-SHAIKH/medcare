@@ -1,3 +1,4 @@
+import { API_URL } from "../config";
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Calendar as CalendarIcon, Clock, CreditCard, CheckCircle, ChevronRight, Activity, Video, MapPin } from 'lucide-react';
@@ -30,7 +31,7 @@ const Booking = () => {
 
     const fetchDoctorDetails = async () => {
         try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/doctors/${doctorId}`);
+            const res = await axios.get(`${API_URL}/api/doctors/${doctorId}`);
             if (res.data.success) {
                 const doc = res.data.data;
                 setDoctor(doc);
@@ -48,7 +49,7 @@ const Booking = () => {
 
     const fetchAvailableSlots = async (date) => {
         try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/slots?doctorId=${doctorId}&date=${date}&isBooked=false`);
+            const res = await axios.get(`${API_URL}/api/slots?doctorId=${doctorId}&date=${date}&isBooked=false`);
             if (res.data.success) {
                 setAvailableSlots(res.data.data);
             }
@@ -75,7 +76,7 @@ const Booking = () => {
             if (!token) return alert('Please login to book an appointment');
 
             // 1. Create Pending Appointment
-            const appointRes = await axios.post(`${import.meta.env.VITE_API_URL}/api/appointments`, {
+            const appointRes = await axios.post(`${API_URL}/api/appointments`, {
                 doctor: doctorId,
                 appointmentType: bookingData.appointmentType,
                 slot: bookingData.slotId
@@ -84,7 +85,7 @@ const Booking = () => {
             const appointmentId = appointRes.data.data._id;
 
             // 2. Create Razorpay Order
-            const orderRes = await axios.post(`${import.meta.env.VITE_API_URL}/api/payments/razorpay/order`, {
+            const orderRes = await axios.post(`${API_URL}/api/payments/razorpay/order`, {
                 appointmentId
             }, { headers: { Authorization: `Bearer ${token}` } });
 
@@ -102,7 +103,7 @@ const Booking = () => {
                 handler: async (response) => {
                     // 4. Verify Payment
                     try {
-                        const verifyRes = await axios.post(`${import.meta.env.VITE_API_URL}/api/payments/razorpay/verify`, {
+                        const verifyRes = await axios.post(`${API_URL}/api/payments/razorpay/verify`, {
                             ...response,
                             appointmentId
                         }, { headers: { Authorization: `Bearer ${token}` } });

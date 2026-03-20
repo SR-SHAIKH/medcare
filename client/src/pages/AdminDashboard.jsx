@@ -1,3 +1,4 @@
+import { API_URL } from "../config";
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, Activity, Settings, LogOut, Search, Filter, TrendingUp, Calendar, CreditCard, UserCheck, CheckCircle, XCircle } from 'lucide-react';
@@ -21,7 +22,7 @@ const AdminDashboard = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const newSocket = io(import.meta.env.VITE_API_URL);
+        const newSocket = io(API_URL);
         setSocket(newSocket);
 
         fetchAllData();
@@ -46,9 +47,9 @@ const AdminDashboard = () => {
 
         try {
             const [statsRes, pendingRes, appointmentsRes] = await Promise.all([
-                axios.get(`${import.meta.env.VITE_API_URL}/api/admin/stats`, { headers }),
-                axios.get(`${import.meta.env.VITE_API_URL}/api/admin/doctors/pending`, { headers }),
-                axios.get(`${import.meta.env.VITE_API_URL}/api/admin/appointments`, { headers })
+                axios.get(`${API_URL}/api/admin/stats`, { headers }),
+                axios.get(`${API_URL}/api/admin/doctors/pending`, { headers }),
+                axios.get(`${API_URL}/api/admin/appointments`, { headers })
             ]);
 
             if (statsRes.data.success) setStats(statsRes.data.data);
@@ -63,7 +64,7 @@ const AdminDashboard = () => {
     const handleApprove = async (id) => {
         try {
             const token = localStorage.getItem('token');
-            await axios.put(`${import.meta.env.VITE_API_URL}/api/admin/doctors/${id}/approve`,
+            await axios.put(`${API_URL}/api/admin/doctors/${id}/approve`,
                 {},
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -77,7 +78,7 @@ const AdminDashboard = () => {
     const handleReject = async (id) => {
         try {
             const token = localStorage.getItem('token');
-            await axios.put(`${import.meta.env.VITE_API_URL}/api/admin/doctors/${id}/reject`,
+            await axios.put(`${API_URL}/api/admin/doctors/${id}/reject`,
                 {},
                 { headers: { Authorization: `Bearer ${token}` } }
             );

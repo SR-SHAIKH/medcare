@@ -1,3 +1,4 @@
+import { API_URL } from "../../config";
 import { useState, useEffect } from 'react';
 import { Clock, Trash2, Plus, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -23,7 +24,7 @@ const DoctorSlots = () => {
 
     const fetchSlots = async () => {
         try {
-            const res = await authFetch(`${import.meta.env.VITE_API_URL}/api/doctor/slots`);
+            const res = await authFetch(`${API_URL}/api/doctor/slots`);
             const data = await res.json();
             if (data.success) setSlots(data.data);
         } catch (err) {
@@ -41,7 +42,7 @@ const DoctorSlots = () => {
         setCreating(true);
         setMessage('');
         try {
-            const res = await authFetch(`${import.meta.env.VITE_API_URL}/api/doctor/slots`, {
+            const res = await authFetch(`${API_URL}/api/doctor/slots`, {
                 method: 'POST',
                 body: JSON.stringify(form)
             });
@@ -61,7 +62,7 @@ const DoctorSlots = () => {
     const handleDelete = async (slotId) => {
         if (!confirm('Delete this slot?')) return;
         try {
-            const res = await authFetch(`${import.meta.env.VITE_API_URL}/api/doctor/slots/${slotId}`, {
+            const res = await authFetch(`${API_URL}/api/doctor/slots/${slotId}`, {
                 method: 'DELETE'
             });
             const data = await res.json();

@@ -1,3 +1,4 @@
+import { API_URL } from "../../config";
 import { useState, useEffect } from 'react';
 import { FileText, Download, Upload, Plus, ExternalLink, Calendar as CalendarIcon, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -16,7 +17,7 @@ const MedicalHistory = () => {
 
     const fetchHistory = async () => {
         try {
-            const res = await authFetch(`${import.meta.env.VITE_API_URL}/api/patient/medical-history`);
+            const res = await authFetch(`${API_URL}/api/patient/medical-history`);
             const data = await res.json();
             if (data.success) {
                 setHistory(data.data);
@@ -31,7 +32,7 @@ const MedicalHistory = () => {
     const handleUpload = async (e) => {
         e.preventDefault();
         try {
-            const res = await authFetch(`${import.meta.env.VITE_API_URL}/api/patient/upload-report`, {
+            const res = await authFetch(`${API_URL}/api/patient/upload-report`, {
                 method: 'POST',
                 body: JSON.stringify({ reportName: uploadData.name, reportUrl: uploadData.url })
             });

@@ -1,3 +1,4 @@
+import { API_URL } from "../config";
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
 const AuthContext = createContext(null);
@@ -21,7 +22,7 @@ export const AuthProvider = ({ children }) => {
                 return;
             }
             try {
-                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
+                const res = await fetch(`${API_URL}/api/auth/me`, {
                     headers: { Authorization: `Bearer ${savedToken}` }
                 });
                 const data = await res.json();

@@ -1,3 +1,4 @@
+import { API_URL } from "../config";
 import { useState, useEffect } from 'react';
 import { useNavigate, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Calendar, Video, Clock, Users, Settings, LogOut, Activity, MapPin, Sliders } from 'lucide-react';
@@ -16,7 +17,7 @@ const DoctorDashboard = () => {
 
     const fetchDoctorProfile = async () => {
         try {
-            const res = await authFetch(`${import.meta.env.VITE_API_URL}/api/doctor/profile`);
+            const res = await authFetch(`${API_URL}/api/doctor/profile`);
             const data = await res.json();
             if (data.success) {
                 setDoctorProfile(data.data);

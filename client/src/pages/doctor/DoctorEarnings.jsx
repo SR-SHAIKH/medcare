@@ -1,3 +1,4 @@
+import { API_URL } from "../../config";
 import { useState, useEffect } from 'react';
 import { DollarSign, TrendingUp, Calendar, CreditCard } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -13,7 +14,7 @@ const DoctorEarnings = () => {
 
     const fetchEarnings = async () => {
         try {
-            const res = await authFetch(`${import.meta.env.VITE_API_URL}/api/doctor/earnings`);
+            const res = await authFetch(`${API_URL}/api/doctor/earnings`);
             const data = await res.json();
             if (data.success) setEarnings(data.data);
         } catch (err) {

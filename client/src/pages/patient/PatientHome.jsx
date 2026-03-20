@@ -1,3 +1,4 @@
+import { API_URL } from "../../config";
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, Video, Clock, FileText, ChevronRight, MapPin } from 'lucide-react';
@@ -15,7 +16,7 @@ const PatientHome = () => {
 
     const fetchAppointments = async () => {
         try {
-            const res = await authFetch(`${import.meta.env.VITE_API_URL}/api/patient/appointments`);
+            const res = await authFetch(`${API_URL}/api/patient/appointments`);
             const data = await res.json();
             if (data.success) {
                 setAppointments(data.data);

@@ -1,3 +1,4 @@
+import { API_URL } from "../../config";
 import { useState, useEffect } from 'react';
 import { Users, Mail, Phone } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -13,7 +14,7 @@ const DoctorPatients = () => {
 
     const fetchPatients = async () => {
         try {
-            const res = await authFetch(`${import.meta.env.VITE_API_URL}/api/doctor/patients`);
+            const res = await authFetch(`${API_URL}/api/doctor/patients`);
             const data = await res.json();
             if (data.success) setPatients(data.data);
         } catch (err) {

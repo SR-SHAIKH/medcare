@@ -8,8 +8,7 @@ const Login = () => {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         email: '',
-        password: '',
-        role: 'patient'
+        password: ''
     });
 
     const navigate = useNavigate();
@@ -22,18 +21,22 @@ const Login = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        console.log('Login clicked');
-        console.log('Sending request...', formData);
         try {
             const response = await fetch(`${API_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: formData.email, password: formData.password })
+                body: JSON.stringify({
+                    email: formData.email,
+                    password: formData.password
+                })
             });
-            console.log('Response status:', response.status);
+
+            if (!response.ok) {
+                throw new Error('Login failed');
+            }
+
             const data = await response.json();
-            console.log('Response data:', data);
-            
+
             if (data.success) {
                 login(data.user, data.token);
                 // Redirect based on role returned from server
@@ -42,8 +45,9 @@ const Login = () => {
                 alert(data.message || 'Login failed');
             }
         } catch (err) {
-            console.error('Login error:', err);
             alert('Something went wrong. Please try again.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -70,19 +74,7 @@ const Login = () => {
                 <div className="glass-card p-8 sm:p-10 border border-white/40">
                     <form onSubmit={handleSubmit} className="space-y-6">
 
-                        {/* Role Selection */}
-                        <div className="flex bg-gray-100 p-1 rounded-xl mb-2">
-                            {['patient', 'doctor', 'admin'].map((role) => (
-                                <button
-                                    key={role}
-                                    type="button"
-                                    onClick={() => setFormData({ ...formData, role })}
-                                    className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 capitalize ${formData.role === role ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                                >
-                                    {role}
-                                </button>
-                            ))}
-                        </div>
+
 
                         <div className="input-group">
                             <Mail className="input-icon w-5 h-5" />

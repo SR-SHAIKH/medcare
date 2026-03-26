@@ -1,11 +1,8 @@
 require('dotenv').config();
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-// const mongoSanitize = require('express-mongo-sanitize'); // disabled — not needed with open CORS
-// const xss = require('xss-clean'); // disabled — incompatible with Express 5
 const rateLimit = require('express-rate-limit');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -13,29 +10,33 @@ const path = require('path');
 
 const connectDB = require('./config/db');
 
-// ✅ Validate critical environment variables at startup
-const requiredEnvVars = ['MONGO_URI'];
-const missingVars = requiredEnvVars.filter(v => !process.env[v]);
-if (missingVars.length > 0) {
-  console.error(`❌ Missing required environment variables: ${missingVars.join(', ')}`);
-  console.error('   Make sure these are set in Render Environment settings');
+// ────────────────────────────────────────────
+// 1. ENVIRONMENT VALIDATION
+// ────────────────────────────────────────────
+console.log('══════════════════════════════════════════');
+console.log('  MEDCARE API — Starting up...');
+console.log('══════════════════════════════════════════');
+
+console.log('[ENV] NODE_ENV:', process.env.NODE_ENV || 'not set');
+console.log('[ENV] MONGO_URI:', process.env.MONGO_URI ? '✅ SET' : '❌ MISSING');
+console.log('[ENV] JWT_SECRET:', process.env.JWT_SECRET ? '✅ SET' : '⚠️ USING FALLBACK');
+console.log('[ENV] JWT_EXPIRE:', process.env.JWT_EXPIRE ? '✅ SET' : '⚠️ USING DEFAULT 30d');
+console.log('[ENV] PORT:', process.env.PORT || '5000 (default)');
+
+if (!process.env.MONGO_URI) {
+  console.error('❌ FATAL: MONGO_URI is not set. Set it in Render Environment tab.');
   process.exit(1);
 }
 
-// Log env status (no secrets)
-console.log('[ENV CHECK] MONGO_URI:', process.env.MONGO_URI ? '✅ SET' : '❌ MISSING');
-console.log('[ENV CHECK] JWT_SECRET:', process.env.JWT_SECRET ? '✅ SET' : '⚠️ USING FALLBACK');
-console.log('[ENV CHECK] JWT_EXPIRE:', process.env.JWT_EXPIRE ? '✅ SET' : '⚠️ USING DEFAULT 30d');
-
+// ────────────────────────────────────────────
+// 2. EXPRESS + HTTP + SOCKET.IO SETUP
+// ────────────────────────────────────────────
 const app = express();
 const server = http.createServer(app);
 
-
-
-// ✅ Socket.io setup (FIXED)
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: '*',
     methods: ['GET', 'POST']
   }
 });
@@ -43,36 +44,39 @@ const io = new Server(server, {
 // Make io accessible to controllers
 app.set('io', io);
 
-// ✅ Middleware — ORDER MATTERS
-// 1. CORS must be FIRST so preflight OPTIONS requests get proper headers
+// ────────────────────────────────────────────
+// 3. MIDDLEWARE (ORDER MATTERS)
+// ────────────────────────────────────────────
+
+// 3a. CORS — must be FIRST
 app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "Accept"]
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
 
-// 2. Helmet AFTER cors (so it doesn't block preflight)
+// 3b. Helmet — AFTER CORS
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
 
-// 3. Body parsers with size limits
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+// 3c. Body parsing
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// 4. Logging
+// 3d. Logging
 app.use(morgan('dev'));
 
-// 5. Debug middleware for auth routes (logs req.body to confirm parsing)
+// 3e. Debug auth requests
 app.use('/api/auth', (req, res, next) => {
   console.log(`[AUTH ${req.method}] ${req.path} — Body:`, JSON.stringify(req.body));
   next();
 });
 
-// ✅ Static uploads
+// 3f. Static uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ✅ Rate limiting (General)
+// 3g. Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -80,16 +84,17 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 
-// ✅ Auth limiter
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 20,
   message: { success: false, message: 'Too many login attempts. Please try again after 15 minutes.' }
 });
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 
-// ✅ Socket events
+// ────────────────────────────────────────────
+// 4. SOCKET.IO EVENTS
+// ────────────────────────────────────────────
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
@@ -107,55 +112,65 @@ io.on('connection', (socket) => {
   });
 });
 
-// ✅ Routes
-const auth = require('./routes/auth');
-const admin = require('./routes/admin');
-const services = require('./routes/services');
-const doctors = require('./routes/doctors');
-const slots = require('./routes/slots');
-const appointments = require('./routes/appointments');
-const payments = require('./routes/payments');
-const doctorDashboard = require('./routes/doctorDashboard');
-const patientDashboard = require('./routes/patientDashboard');
-const profile = require('./routes/profile');
+// ────────────────────────────────────────────
+// 5. ROUTES (wrapped in try-catch to catch import errors)
+// ────────────────────────────────────────────
 
-// Root route
-app.get("/", (req, res) => {
-  res.send("MedCare API is running 🚀");
+// Root health check route (works even if DB is down)
+app.get('/', (req, res) => {
+  res.json({ success: true, message: 'MedCare API is running 🚀' });
 });
 
-// API Routes
-app.use('/api/auth', auth);
-app.use('/api/admin', admin);
-app.use('/api/services', services);
-app.use('/api/doctors', doctors);
-app.use('/api/slots', slots);
-app.use('/api/appointments', appointments);
-app.use('/api/payments', payments);
-app.use('/api/doctor', doctorDashboard);
-app.use('/api/patient', patientDashboard);
-app.use('/api/profile', profile);
-
-// ✅ Error handler
-app.use((err, req, res, next) => {
+try {
+  app.use('/api/auth', require('./routes/auth'));
+  app.use('/api/admin', require('./routes/admin'));
+  app.use('/api/services', require('./routes/services'));
+  app.use('/api/doctors', require('./routes/doctors'));
+  app.use('/api/slots', require('./routes/slots'));
+  app.use('/api/appointments', require('./routes/appointments'));
+  app.use('/api/payments', require('./routes/payments'));
+  app.use('/api/doctor', require('./routes/doctorDashboard'));
+  app.use('/api/patient', require('./routes/patientDashboard'));
+  app.use('/api/profile', require('./routes/profile'));
+  console.log('✅ All routes loaded successfully');
+} catch (err) {
+  console.error('❌ ROUTE IMPORT ERROR:', err.message);
   console.error(err.stack);
+  // Don't exit — let the health check route still work for debugging
+}
+
+// ────────────────────────────────────────────
+// 6. ERROR HANDLER
+// ────────────────────────────────────────────
+app.use((err, req, res, next) => {
+  console.error('[ERROR]', err.stack);
   res.status(500).json({
     success: false,
     message: err.message || 'Server Error'
   });
 });
 
-// ✅ Start server only AFTER DB connects (prevents 500 errors on startup)
+// ────────────────────────────────────────────
+// 7. START SERVER (DB first, then listen)
+// ────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
+    // Connect to MongoDB FIRST
     await connectDB();
-    server.listen(PORT, "0.0.0.0", () => {
-      console.log(`✅ Server running on port ${PORT}`);
+
+    // Only start listening AFTER DB is ready
+    server.listen(PORT, '0.0.0.0', () => {
+      console.log('══════════════════════════════════════════');
+      console.log(`  ✅ Server running on port ${PORT}`);
+      console.log('══════════════════════════════════════════');
     });
   } catch (err) {
-    console.error('❌ Failed to start server:', err.message);
+    console.error('══════════════════════════════════════════');
+    console.error('  ❌ FAILED TO START SERVER');
+    console.error('  Error:', err.message);
+    console.error('══════════════════════════════════════════');
     process.exit(1);
   }
 };

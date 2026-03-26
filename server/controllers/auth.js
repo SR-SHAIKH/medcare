@@ -103,12 +103,13 @@ exports.register = async (req, res, next) => {
 
         sendTokenResponse(user, 201, res);
     } catch (err) {
+        console.error('[REGISTER ERROR]', err);
         // Handle Mongoose validation errors
         if (err.name === 'ValidationError') {
             const messages = Object.values(err.errors).map(e => e.message);
             return res.status(400).json({ success: false, message: messages.join(', ') });
         }
-        res.status(500).json({ success: false, message: 'Server error during registration' });
+        res.status(500).json({ success: false, message: 'Server error during registration: ' + err.message });
     }
 };
 
@@ -140,7 +141,8 @@ exports.login = async (req, res, next) => {
 
         sendTokenResponse(user, 200, res);
     } catch (err) {
-        res.status(500).json({ success: false, message: 'Server error during login' });
+        console.error('[LOGIN ERROR]', err);
+        res.status(500).json({ success: false, message: 'Server error during login: ' + err.message });
     }
 };
 
@@ -152,6 +154,7 @@ exports.getMe = async (req, res, next) => {
         const user = await User.findById(req.user.id);
         res.status(200).json({ success: true, data: user });
     } catch (err) {
+        console.error('[GET_ME ERROR]', err);
         res.status(500).json({ success: false, message: 'Server error fetching user profile' });
     }
 };

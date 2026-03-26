@@ -13,8 +13,19 @@ const path = require('path');
 
 const connectDB = require('./config/db');
 
-// Connect to Database
-connectDB();
+// ✅ Validate critical environment variables at startup
+const requiredEnvVars = ['MONGO_URI'];
+const missingVars = requiredEnvVars.filter(v => !process.env[v]);
+if (missingVars.length > 0) {
+  console.error(`❌ Missing required environment variables: ${missingVars.join(', ')}`);
+  console.error('   Make sure these are set in Render Environment settings');
+  process.exit(1);
+}
+
+// Log env status (no secrets)
+console.log('[ENV CHECK] MONGO_URI:', process.env.MONGO_URI ? '✅ SET' : '❌ MISSING');
+console.log('[ENV CHECK] JWT_SECRET:', process.env.JWT_SECRET ? '✅ SET' : '⚠️ USING FALLBACK');
+console.log('[ENV CHECK] JWT_EXPIRE:', process.env.JWT_EXPIRE ? '✅ SET' : '⚠️ USING DEFAULT 30d');
 
 const app = express();
 const server = http.createServer(app);
@@ -134,9 +145,19 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ✅ PORT (Render compatible)
+// ✅ Start server only AFTER DB connects (prevents 500 errors on startup)
 const PORT = process.env.PORT || 5000;
 
-server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
-});
+const startServer = async () => {
+  try {
+    await connectDB();
+    server.listen(PORT, "0.0.0.0", () => {
+      console.log(`✅ Server running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error('❌ Failed to start server:', err.message);
+    process.exit(1);
+  }
+};
+
+startServer();

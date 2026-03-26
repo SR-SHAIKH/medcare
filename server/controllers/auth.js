@@ -118,25 +118,42 @@ exports.register = async (req, res, next) => {
 // @access  Public
 exports.login = async (req, res, next) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, role } = req.body;
+        console.log("[LOGIN] REQ BODY:", { email, role, password: password ? '***' : 'MISSING' });
 
         // Validate email & password
         if (!email || !password) {
             return res.status(400).json({ success: false, message: 'Please provide email and password' });
         }
 
+        // Build query — include role if provided
+        const query = { email };
+        if (role) {
+            query.role = role;
+        }
+
         // Check for user
-        const user = await User.findOne({ email }).select('+password');
+        const user = await User.findOne(query).select('+password');
 
         if (!user) {
-            return res.status(401).json({ success: false, message: 'Invalid credentials' });
+            // Check if user exists with different role (for better error message)
+            if (role) {
+                const userWithDifferentRole = await User.findOne({ email });
+                if (userWithDifferentRole) {
+                    return res.status(401).json({ 
+                        success: false, 
+                        message: `No ${role} account found with this email. Your account is registered as: ${userWithDifferentRole.role}` 
+                    });
+                }
+            }
+            return res.status(401).json({ success: false, message: 'Invalid credentials — no account found with this email' });
         }
 
         // Check if password matches
         const isMatch = await bcrypt.compare(password, user.password);
 
         if (!isMatch) {
-            return res.status(401).json({ success: false, message: 'Invalid credentials' });
+            return res.status(401).json({ success: false, message: 'Invalid credentials — wrong password' });
         }
 
         sendTokenResponse(user, 200, res);

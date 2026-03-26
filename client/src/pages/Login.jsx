@@ -1,14 +1,21 @@
 import { API_URL } from "../config";
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Activity } from 'lucide-react';
+import { Mail, Lock, Activity, User, Stethoscope, Shield } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+
+const ROLES = [
+    { key: 'patient', label: 'Patient', icon: User },
+    { key: 'doctor', label: 'Doctor', icon: Stethoscope },
+    { key: 'admin', label: 'Admin', icon: Shield },
+];
 
 const Login = () => {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         email: '',
-        password: ''
+        password: '',
+        role: 'patient'
     });
 
     const navigate = useNavigate();
@@ -21,6 +28,7 @@ const Login = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
+        console.log("LOGIN DATA:", formData);
         try {
             const response = await fetch(`${API_URL}/api/auth/login`, {
                 method: 'POST',
@@ -30,11 +38,13 @@ const Login = () => {
                 },
                 body: JSON.stringify({
                     email: formData.email,
-                    password: formData.password
+                    password: formData.password,
+                    role: formData.role
                 })
             });
 
             const data = await response.json();
+            console.log("LOGIN RESPONSE:", data);
 
             if (data.success) {
                 login(data.user, data.token);
@@ -48,6 +58,8 @@ const Login = () => {
             setLoading(false);
         }
     };
+
+    const activeRole = ROLES.find(r => r.key === formData.role);
 
     return (
         <div className="min-h-screen py-10 flex items-center justify-center relative overflow-hidden bg-gray-50">
@@ -66,13 +78,30 @@ const Login = () => {
                         </span>
                     </Link>
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-                    <p className="text-gray-500">Log in to manage your appointments</p>
+                    <p className="text-gray-500">Log in as <span className="font-semibold text-primary-600">{activeRole?.label}</span></p>
                 </div>
 
                 <div className="glass-card p-8 sm:p-10 border border-white/40">
                     <form onSubmit={handleSubmit} className="space-y-6">
 
-
+                        {/* Role Selector Tabs */}
+                        <div className="flex bg-gray-100 p-1 rounded-xl">
+                            {ROLES.map(({ key, label, icon: Icon }) => (
+                                <button
+                                    key={key}
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, role: key })}
+                                    className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+                                        formData.role === key
+                                            ? 'bg-white text-primary-700 shadow-sm'
+                                            : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
+                                    <Icon className="w-4 h-4" />
+                                    {label}
+                                </button>
+                            ))}
+                        </div>
 
                         <div className="input-group">
                             <Mail className="input-icon w-5 h-5" />
@@ -111,7 +140,7 @@ const Login = () => {
                         </div>
 
                         <button type="submit" disabled={loading} className={`w-full btn-primary py-3 text-base tracking-wide shadow-primary-500/40 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}>
-                            Log In
+                            {loading ? 'Logging in...' : `Log In as ${activeRole?.label}`}
                         </button>
                     </form>
 

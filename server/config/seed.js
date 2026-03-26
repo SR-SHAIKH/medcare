@@ -39,6 +39,8 @@ const ensureAdminExists = async () => {
         });
 
         console.log(`[SEED] ✅ Admin user created successfully: ${adminEmail}`);
+        console.log("ADMIN_EMAIL:", process.env.ADMIN_EMAIL);
+        console.log("ADMIN_PASSWORD:", process.env.ADMIN_PASSWORD);
     } catch (err) {
         console.error('[SEED] ❌ Failed to create admin user:', err.message);
         // Don't throw — admin seed failure shouldn't crash the server

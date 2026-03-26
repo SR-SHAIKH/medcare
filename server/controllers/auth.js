@@ -34,10 +34,18 @@ exports.register = async (req, res, next) => {
             qualification, experience, clinicLocation, consultationFee, specializations, consultationTypes, documents 
         } = req.body;
 
+        // Validate required fields
+        if (!name || !email || !password || !phone) {
+            return res.status(400).json({ 
+                success: false, 
+                message: `Missing required fields: ${!name ? 'name ' : ''}${!email ? 'email ' : ''}${!password ? 'password ' : ''}${!phone ? 'phone' : ''}`.trim()
+            });
+        }
+
         // Check if user already exists
         let user = await User.findOne({ email });
         if (user) {
-            return res.status(400).json({ success: false, message: 'User already exists' });
+            return res.status(400).json({ success: false, message: 'User already exists with this email' });
         }
 
         // Hash password
@@ -96,7 +104,12 @@ exports.register = async (req, res, next) => {
 
         sendTokenResponse(user, 201, res);
     } catch (err) {
-        res.status(400).json({ success: false, error: err.message });
+        // Handle Mongoose validation errors
+        if (err.name === 'ValidationError') {
+            const messages = Object.values(err.errors).map(e => e.message);
+            return res.status(400).json({ success: false, message: messages.join(', ') });
+        }
+        res.status(500).json({ success: false, message: 'Server error during registration' });
     }
 };
 
@@ -128,7 +141,7 @@ exports.login = async (req, res, next) => {
 
         sendTokenResponse(user, 200, res);
     } catch (err) {
-        res.status(400).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, message: 'Server error during login' });
     }
 };
 
@@ -140,6 +153,6 @@ exports.getMe = async (req, res, next) => {
         const user = await User.findById(req.user.id);
         res.status(200).json({ success: true, data: user });
     } catch (err) {
-        res.status(400).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, message: 'Server error fetching user profile' });
     }
 };

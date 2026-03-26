@@ -4,8 +4,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const mongoSanitize = require('express-mongo-sanitize');
-const xss = require('xss-clean');
+// const mongoSanitize = require('express-mongo-sanitize'); // disabled — not needed with open CORS
+// const xss = require('xss-clean'); // disabled — incompatible with Express 5
 const rateLimit = require('express-rate-limit');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -19,44 +19,44 @@ connectDB();
 const app = express();
 const server = http.createServer(app);
 
-// ✅ Allowed Origins (IMPORTANT)
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://medcare-9ifh.onrender.com"
-];
+
 
 // ✅ Socket.io setup (FIXED)
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
-    methods: ['GET', 'POST'],
-    credentials: true
+    origin: "*",
+    methods: ['GET', 'POST']
   }
 });
 
 // Make io accessible to controllers
 app.set('io', io);
 
-// ✅ Middleware
-app.use(helmet());
-
-// ✅ CORS FIX (MAIN FIX)
+// ✅ Middleware — ORDER MATTERS
+// 1. CORS must be FIRST so preflight OPTIONS requests get proper headers
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "Accept"]
 }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-// app.use(mongoSanitize()); // optional
-// app.use(xss()); // disabled (Express 5 issue)
+// 2. Helmet AFTER cors (so it doesn't block preflight)
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+
+// 3. Body parsers with size limits
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// 4. Logging
 app.use(morgan('dev'));
+
+// 5. Debug middleware for auth routes (logs req.body to confirm parsing)
+app.use('/api/auth', (req, res, next) => {
+  console.log(`[AUTH ${req.method}] ${req.path} — Body:`, JSON.stringify(req.body));
+  next();
+});
 
 // ✅ Static uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

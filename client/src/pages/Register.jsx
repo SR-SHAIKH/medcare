@@ -61,7 +61,10 @@ const Register = () => {
         try {
             const response = await fetch(`${API_URL}/api/auth/register`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
                 body: JSON.stringify(formData)
             });
             const data = await response.json();
@@ -71,11 +74,10 @@ const Register = () => {
                 // Redirect based on role
                 navigate(formData.role === 'doctor' ? '/doctor-panel' : '/dashboard');
             } else {
-                alert(data.message || 'Registration failed');
+                alert(data.message || 'Registration failed. Please check your details.');
             }
         } catch (err) {
-            console.error('Registration error:', err);
-            alert('Something went wrong. Please try again.');
+            alert('Network error. Please check your connection and try again.');
         }
     };
 

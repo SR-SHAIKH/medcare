@@ -24,28 +24,26 @@ const Login = () => {
         try {
             const response = await fetch(`${API_URL}/api/auth/login`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
                 body: JSON.stringify({
                     email: formData.email,
                     password: formData.password
                 })
             });
 
-            if (!response.ok) {
-                throw new Error('Login failed');
-            }
-
             const data = await response.json();
 
             if (data.success) {
                 login(data.user, data.token);
-                // Redirect based on role returned from server
                 navigate(getDashboardPath(data.user.role));
             } else {
-                alert(data.message || 'Login failed');
+                alert(data.message || 'Login failed. Please check your credentials.');
             }
         } catch (err) {
-            alert('Something went wrong. Please try again.');
+            alert('Network error. Please check your connection and try again.');
         } finally {
             setLoading(false);
         }

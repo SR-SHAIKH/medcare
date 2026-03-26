@@ -1,6 +1,6 @@
 const User = require('../models/User');
 const Doctor = require('../models/Doctor');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 // Get token from model, create cookie and send response
@@ -140,9 +140,9 @@ exports.login = async (req, res, next) => {
             if (role) {
                 const userWithDifferentRole = await User.findOne({ email });
                 if (userWithDifferentRole) {
-                    return res.status(401).json({ 
-                        success: false, 
-                        message: `No ${role} account found with this email. Your account is registered as: ${userWithDifferentRole.role}` 
+                    return res.status(401).json({
+                        success: false,
+                        message: `No ${role} account found with this email. Your account is registered as: ${userWithDifferentRole.role}`
                     });
                 }
             }

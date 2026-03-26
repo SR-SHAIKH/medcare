@@ -9,6 +9,7 @@ const { Server } = require('socket.io');
 const path = require('path');
 
 const connectDB = require('./config/db');
+const ensureAdminExists = require('./config/seed');
 
 // ────────────────────────────────────────────
 // 1. ENVIRONMENT VALIDATION
@@ -22,6 +23,7 @@ console.log('[ENV] MONGO_URI:', process.env.MONGO_URI ? '✅ SET' : '❌ MISSING
 console.log('[ENV] JWT_SECRET:', process.env.JWT_SECRET ? '✅ SET' : '⚠️ USING FALLBACK');
 console.log('[ENV] JWT_EXPIRE:', process.env.JWT_EXPIRE ? '✅ SET' : '⚠️ USING DEFAULT 30d');
 console.log('[ENV] PORT:', process.env.PORT || '5000 (default)');
+console.log('[ENV] ADMIN_EMAIL:', process.env.ADMIN_EMAIL ? '✅ SET' : '⚠️ NOT SET (no auto-seed)');
 
 if (!process.env.MONGO_URI) {
   console.error('❌ FATAL: MONGO_URI is not set. Set it in Render Environment tab.');
@@ -159,6 +161,9 @@ const startServer = async () => {
   try {
     // Connect to MongoDB FIRST
     await connectDB();
+
+    // Seed admin user if not exists
+    await ensureAdminExists();
 
     // Only start listening AFTER DB is ready
     server.listen(PORT, '0.0.0.0', () => {

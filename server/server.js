@@ -9,8 +9,8 @@ const { Server } = require('socket.io');
 const path = require('path');
 
 const connectDB = require('./config/db');
-const ensureAdminExists = require('./utils/seed'); // path check karo
-// const ensureAdminExists = require('./config/seed');
+// const ensureAdminExists = require('./utils/seed'); // path check karo
+const ensureAdminExists = require('./config/seed');
 
 // ────────────────────────────────────────────
 // 1. ENVIRONMENT VALIDATION

@@ -5,16 +5,15 @@ const jwt = require('jsonwebtoken');
 
 // Get token from model, create cookie and send response
 const sendTokenResponse = (user, statusCode, res) => {
-    // Create token with user identity and role
     const token = jwt.sign(
         { id: user._id, role: user.role, email: user.email },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRE }
+        process.env.JWT_SECRET || "fallback_secret_123",
+        { expiresIn: process.env.JWT_EXPIRE || "30d" }
     );
 
     res.status(statusCode).json({
         success: true,
-        token, // We can also send token back in a cookie if needed for advanced security
+        token,
         user: {
             id: user._id,
             name: user.name,
@@ -29,15 +28,15 @@ const sendTokenResponse = (user, statusCode, res) => {
 // @access  Public
 exports.register = async (req, res, next) => {
     try {
-        const { 
+        const {
             name, email, password, phone, role,
-            qualification, experience, clinicLocation, consultationFee, specializations, consultationTypes, documents 
+            qualification, experience, clinicLocation, consultationFee, specializations, consultationTypes, documents
         } = req.body;
 
         // Validate required fields
         if (!name || !email || !password || !phone) {
-            return res.status(400).json({ 
-                success: false, 
+            return res.status(400).json({
+                success: false,
                 message: `Missing required fields: ${!name ? 'name ' : ''}${!email ? 'email ' : ''}${!password ? 'password ' : ''}${!phone ? 'phone' : ''}`.trim()
             });
         }
